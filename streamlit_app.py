@@ -104,20 +104,7 @@ else:
         else:
             st.error("No document found with that hash.")
 
-    # ----------------------- Section 3: Legal Research Assistant -----------------------
-    st.title("Legal Research Assistant")
-    query = st.text_input("Enter a Legal Query:")
-    
-    if st.button("Search Relevant Case Laws"):
-        response = requests.get(f"{API_CONFIG['URL']}{query.replace(' ', '+')}")
-        soup = BeautifulSoup(response.text, 'html.parser')
-        results = soup.find_all("div", class_="case-law-summary")
-        
-        st.write("### Top Relevant Case Laws:")
-        for i, result in enumerate(results[:5], start=1):
-            st.write(f"**{i}.** {result.text.strip()}")
-
-    # ----------------------- Section 4: Case Outcome Prediction -----------------------
+   # ----------------------- Section 4: Case Outcome Prediction -----------------------
     st.title("Case Outcome Prediction & Analytics")
 
     sample_data = pd.DataFrame({
@@ -168,7 +155,7 @@ else:
 
     # ----------------------- Section 7: Cohere Chatbot -----------------------
     st.title("Legal Chatbot")
-    user_input = st.text_input("Ask your legal question:")
+    user_input = st.text_input("Ask your legal questions, just for fun, or for research:")
     
     if st.button("Ask Chatbot"):
         if user_input:
