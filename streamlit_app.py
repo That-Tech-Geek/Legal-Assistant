@@ -20,7 +20,7 @@ from google.oauth2.credentials import Credentials
 # ----------------------- API & Credentials Configuration -----------------------
 API_CONFIG = {
     'cohere_api_key': st.secrets["COHERE_API_KEY"],
-    'google_calendar_scopes': st.secrets["CALENDAR_API_KEY"],
+    'google_calendar_scopes': ['https://www.googleapis.com/auth/calendar'],  # Use the appropriate scopes
     'google_credentials_file': json.loads(st.secrets["google"]["credentials_file"]),
     'URL': st.secrets["URL"]
 }
