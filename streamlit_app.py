@@ -106,6 +106,7 @@ else:
 
    # ----------------------- Section 4: Case Outcome Prediction -----------------------
     st.title("Case Outcome Prediction & Analytics")
+    st.subheader("This is currently based on placeholder data as dataset with actual values is under construction.")
 
     sample_data = pd.DataFrame({
         "Case Duration (Days)": np.random.randint(30, 730, 100),
