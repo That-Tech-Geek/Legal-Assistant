@@ -47,7 +47,7 @@ else:
 
 # ----------------------- Section 1: User Authentication -----------------------
 def authenticate_user(username, password):
-    return username == "admin" and password == "password123"
+    return username == "admin123" and password == "password"
 
 # Initialize session state for authentication
 if 'authenticated' not in st.session_state:
