@@ -138,22 +138,6 @@ else:
     hearing_date = st.date_input("Select Hearing Date:", datetime.date.today())
     st.write(f"Scheduled Hearing Date: **{hearing_date.strftime('%B %d, %Y')}**")
 
-    # ----------------------- Section 6: Voice Command Integration -----------------------
-    st.title("Voice Command Case Search")
-
-    if st.button("Start Listening"):
-        recognizer = sr.Recognizer()
-        with sr.Microphone() as source:
-            st.write("Listening for a case name or query...")
-            try:
-                audio = recognizer.listen(source, timeout=5)
-                voice_query = recognizer.recognize_google(audio)
-                st.write(f"You said: **{voice_query}**")
-            except sr.UnknownValueError:
-                st.write("Sorry, I didn't catch that.")
-            except sr.RequestError:
-                st.write("Service unavailable.")
-
     # ----------------------- Section 7: Cohere Chatbot -----------------------
     st.title("Legal Chatbot")
     user_input = st.text_input("Ask your legal questions, just for fun, or for research:")
