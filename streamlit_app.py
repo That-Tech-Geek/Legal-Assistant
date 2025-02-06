@@ -155,19 +155,25 @@ else:
             st.write("Please type a question.")
 
     # ----------------------- Section 8: Google Calendar API Integration -----------------------
-    st.title("Add Hearing to Google Calendar")
-    
-    # Check if the Google credentials file exists
-    if not os.path.exists(API_CONFIG['google_credentials_file']):
-        st.error("Google credentials file not found. Please check the path in your secrets.")
-    else:
+st.title("Add Hearing to Google Calendar")
+
+# Check if the Google credentials file exists
+if not os.path.exists(API_CONFIG['google_credentials_file']):
+    st.error("Google credentials file not found. Please check the path in your secrets.")
+else:
+    # Authenticate and connect to Google Calendar
+    if 'creds' not in st.session_state:
         if st.button("Authenticate and Connect Google Calendar"):
             flow = InstalledAppFlow.from_client_secrets_file(
                 API_CONFIG['google_credentials_file'], API_CONFIG['google_calendar_scopes'])
-            creds = flow.run_local_server(port=0)
-            
-            service = build('calendar', 'v3', credentials=creds)
-            
+            st.session_state.creds = flow.run_local_server(port=0)
+            st.success("Authentication successful!")
+    else:
+        creds = st.session_state.creds
+        service = build('calendar', 'v3', credentials=creds)
+
+        # Schedule the hearing
+        if st.button("Schedule Hearing"):
             event = {
                 'summary': 'Court Hearing',
                 'location': '123 Legal Ave, Courtroom 7',
@@ -182,5 +188,8 @@ else:
                 },
             }
             
-            event = service.events().insert(calendarId='primary', body=event).execute()
-            st.write(f"Event created: {event.get('htmlLink')}")
+            try:
+                event = service.events().insert(calendarId='primary', body=event).execute()
+                st.write(f"Event created: {event.get('htmlLink')}")
+            except Exception as e:
+                st.error(f"An error occurred: {e}")
