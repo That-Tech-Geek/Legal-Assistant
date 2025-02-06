@@ -18,11 +18,6 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.oauth2.credentials import Credentials
 nlp = spacy.load("en_core_web_sm")
 
-
-# ----------------------- Install spaCy Model -----------------------
-if not os.path.exists("en_core_web_sm"):
-    os.system("python -m spacy download en_core_web_sm")
-
 # ----------------------- API & Credentials Configuration -----------------------
 API_CONFIG = {
     'cohere_api_key': st.secrets["COHERE_API_KEY"],
