@@ -1,5 +1,4 @@
 import streamlit as st
-import spacy
 import os
 import hashlib
 import pandas as pd
@@ -16,7 +15,6 @@ from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.oauth2.credentials import Credentials
-nlp = spacy.load("en_core_web_sm")
 
 # ----------------------- API & Credentials Configuration -----------------------
 API_CONFIG = {
@@ -58,7 +56,7 @@ if login_button and authenticate_user(username, password):
     query = st.text_input("Enter a Legal Query:")
     
     if st.button("Search Relevant Case Laws"):
-        response = requests.get(f"{URL}{query.replace(' ', '+')}")
+        response = requests.get(f"{API_CONFIG['URL']}{query.replace(' ', '+')}")
         soup = BeautifulSoup(response.text, 'html.parser')
         results = soup.find_all("div", class_="case-law-summary")
         
