@@ -147,7 +147,7 @@ else:
             response = cohere_client.generate(
                 model="command",
                 prompt=f"Legal expert assistant: {user_input}",
-                max_tokens=100,
+                max_tokens=10000,
                 temperature=0.5
             )
             st.write(f"**Bot Response:** {response.generations[0].text.strip()}")
