@@ -6,7 +6,6 @@ import numpy as np
 import datetime
 import requests
 import speech_recognition as sr
-from transformers import pipeline
 from bs4 import BeautifulSoup
 from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plt
