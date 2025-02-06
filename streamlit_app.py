@@ -75,8 +75,10 @@ else:
         file_content = uploaded_file.read()
         file_hash = hashlib.sha256(file_content).hexdigest()
         
-        # Save the uploaded document with its hash as the filename
-        file_path = os.path.join(UPLOAD_DIR, f"{file_hash}.txt")  # Change extension based on file type
+        # Get the original file extension
+        file_extension = os.path.splitext(uploaded_file.name)[1]  # e.g., .txt, .pdf
+        # Save the uploaded document with its hash as the filename and original extension
+        file_path = os.path.join(UPLOAD_DIR, f"{file_hash}{file_extension}")
         with open(file_path, "wb") as f:
             f.write(file_content)
         
@@ -95,7 +97,7 @@ else:
             retrieved_file_path = document_hashes[hash_input]
             if os.path.exists(retrieved_file_path):
                 with open(retrieved_file_path, "rb") as f:
-                    st.download_button("Download Document", f, file_name=f"{hash_input}.txt")
+                    st.download_button("Download Document", f, file_name=os.path.basename(retrieved_file_path))
                 st.success("Document retrieved successfully!")
             else:
                 st.error("No document found with that hash.")
@@ -171,7 +173,7 @@ else:
     if st.button("Ask Chatbot"):
         if user_input:
             response = cohere_client.generate(
-                model="command",
+                model="xlarge",
                 prompt=f"Legal expert assistant: {user_input}",
                 max_tokens=100,
                 temperature=0.5
