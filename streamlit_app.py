@@ -25,8 +25,8 @@ from google.oauth2.credentials import Credentials
 # ----------------------- API & Credentials Configuration -----------------------
 # All API keys and credentials in one place for easy management
 API_CONFIG = {
-    'cohere_api_key': st.secrets["COHERE_API_KEY"]
-    'google_calendar_scopes': st.secrets["CALENDAR_API_KEY"]
+    'cohere_api_key': st.secrets["COHERE_API_KEY"],
+    'google_calendar_scopes': st.secrets["CALENDAR_API_KEY"],
     'google_credentials_file': st.secrets["CREDENTIALS_API"]
 }
 
