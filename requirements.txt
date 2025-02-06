@@ -1,6 +1,5 @@
 streamlit
 spacy
-hashlib
 pandas
 numpy
 datetime
