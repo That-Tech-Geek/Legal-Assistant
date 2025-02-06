@@ -1,5 +1,6 @@
 import streamlit as st
 import spacy
+import os
 import hashlib
 import pandas as pd
 import numpy as np
@@ -16,16 +17,21 @@ from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.oauth2.credentials import Credentials
 
+# ----------------------- Install spaCy Model -----------------------
+if not os.path.exists("en_core_web_sm"):
+    os.system("python -m spacy download en_core_web_sm")
+
+# Load the spaCy model
+nlp = spacy.load("en_core_web_sm")
+
 # ----------------------- API & Credentials Configuration -----------------------
-# All API keys and credentials in one place for easy management
 API_CONFIG = {
     'cohere_api_key': st.secrets["COHERE_API_KEY"],
     'google_calendar_scopes': st.secrets["CALENDAR_API_KEY"],
     'google_credentials_file': st.secrets["CREDENTIALS_API"]
 }
 
-# Initialize NLP Model and Cohere API for the chatbot
-nlp = spacy.load("en_core_web_sm")
+# Initialize Cohere API for the chatbot
 cohere_client = cohere.Client(API_CONFIG['cohere_api_key'])
 
 # Set up Google Calendar API
@@ -33,7 +39,6 @@ creds = None
 
 # ----------------------- Section 1: User Authentication -----------------------
 def authenticate_user(username, password):
-    # Simulated authentication check
     return username == "admin" and password == "password123"
 
 st.sidebar.title("Login")
@@ -69,7 +74,6 @@ if login_button and authenticate_user(username, password):
     # ----------------------- Section 4: Case Outcome Prediction -----------------------
     st.title("Case Outcome Prediction & Analytics")
 
-    # Sample dataset for case outcome prediction
     sample_data = pd.DataFrame({
         "Case Duration (Days)": np.random.randint(30, 730, 100),
         "Risk Score": np.random.uniform(0.1, 1.0, 100)
@@ -78,7 +82,6 @@ if login_button and authenticate_user(username, password):
     st.write("### Case Data:")
     st.write(sample_data)
 
-    # Predict case duration
     X = sample_data["Risk Score"].values.reshape(-1, 1)
     y = sample_data["Case Duration (Days)"].values
     model = LinearRegression()
@@ -88,7 +91,6 @@ if login_button and authenticate_user(username, password):
     predicted_duration = model.predict([[risk_score]])[0]
     st.write(f"Predicted Case Duration: **{int(predicted_duration)} days**")
 
-    # Plot data
     fig, ax = plt.subplots()
     ax.scatter(sample_data["Risk Score"], sample_data["Case Duration (Days)"], label="Actual Data")
     ax.plot(sample_data["Risk Score"], model.predict(X), color='red', label="Prediction Line")
