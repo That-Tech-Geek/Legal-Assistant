@@ -17,3 +17,4 @@ google-auth-httplib2
 google-auth-oauthlib
 oauth2client
 torch
+en_core_web_sm
