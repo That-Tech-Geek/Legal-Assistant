@@ -140,26 +140,30 @@ else:
     # ----------------------- Section 8: Google Calendar API Integration -----------------------
     st.title("Add Hearing to Google Calendar")
     
-    if st.button("Authenticate and Connect Google Calendar"):
-        flow = InstalledAppFlow.from_client_secrets_file(
-            API_CONFIG['google_credentials_file'], API_CONFIG['google_calendar_scopes'])
-        creds = flow.run_local_server(port=0)
-        
-        service = build('calendar', 'v3', credentials=creds)
-        
-        event = {
-            'summary': 'Court Hearing',
-            'location': '123 Legal Ave, Courtroom 7',
-            'description': 'Scheduled court hearing for case review.',
-            'start': {
-                'dateTime': hearing_date.strftime('%Y-%m-%dT%H:%M:%S'),
-                'timeZone': 'America/New_York',
-            },
-            'end': {
-                'dateTime': (hearing_date + datetime.timedelta(hours=2)).strftime('%Y-%m-%dT%H:%M:%S'),
-                'timeZone': 'America/New_York',
-            },
-        }
-        
-        event = service.events().insert(calendarId='primary', body=event).execute()
-        st.write(f"Event created: {event.get('htmlLink')}")
+    # Check if the Google credentials file exists
+    if not os.path.exists(API_CONFIG['google_credentials_file']):
+        st.error("Google credentials file not found. Please check the path in your secrets.")
+    else:
+        if st.button("Authenticate and Connect Google Calendar"):
+            flow = InstalledAppFlow.from_client_secrets_file(
+                API_CONFIG['google_credentials_file'], API_CONFIG['google_calendar_scopes'])
+            creds = flow.run_local_server(port=0)
+            
+            service = build('calendar', 'v3', credentials=creds)
+            
+            event = {
+                'summary': 'Court Hearing',
+                'location': '123 Legal Ave, Courtroom 7',
+                'description': 'Scheduled court hearing for case review.',
+                'start': {
+                    'dateTime': hearing_date.strftime('%Y-%m-%dT%H:%M:%S'),
+                    'timeZone': 'America/New_York',
+                },
+                'end': {
+                    'dateTime': (hearing_date + datetime.timedelta(hours=2)).strftime('%Y-%m-%dT%H:%M:%S'),
+                    'timeZone': 'America/New_York',
+                },
+            }
+            
+            event = service.events().insert(calendarId='primary', body=event).execute()
+            st.write(f"Event created: {event.get('htmlLink')}")
