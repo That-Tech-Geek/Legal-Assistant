@@ -173,7 +173,7 @@ else:
     if st.button("Ask Chatbot"):
         if user_input:
             response = cohere_client.generate(
-                model="xlarge",
+                model="command",
                 prompt=f"Legal expert assistant: {user_input}",
                 max_tokens=100,
                 temperature=0.5
