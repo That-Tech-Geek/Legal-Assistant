@@ -16,19 +16,19 @@ from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.oauth2.credentials import Credentials
+nlp = spacy.load("en_core_web_sm")
+
 
 # ----------------------- Install spaCy Model -----------------------
 if not os.path.exists("en_core_web_sm"):
     os.system("python -m spacy download en_core_web_sm")
 
-# Load the spaCy model
-nlp = spacy.load("en_core_web_sm")
-
 # ----------------------- API & Credentials Configuration -----------------------
 API_CONFIG = {
     'cohere_api_key': st.secrets["COHERE_API_KEY"],
     'google_calendar_scopes': st.secrets["CALENDAR_API_KEY"],
-    'google_credentials_file': st.secrets["CREDENTIALS_API"]
+    'google_credentials_file': st.secrets["CREDENTIALS_API"],
+    'URL': st.secrets["URL"]
 }
 
 # Initialize Cohere API for the chatbot
@@ -63,7 +63,7 @@ if login_button and authenticate_user(username, password):
     query = st.text_input("Enter a Legal Query:")
     
     if st.button("Search Relevant Case Laws"):
-        response = requests.get(f"https://www.example-legal-research.com/search?q={query.replace(' ', '+')}")
+        response = requests.get(f"{URL}{query.replace(' ', '+')}")
         soup = BeautifulSoup(response.text, 'html.parser')
         results = soup.find_all("div", class_="case-law-summary")
         
