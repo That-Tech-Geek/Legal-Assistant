@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup
 from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plt
 import cohere
+import json
 import google.auth
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
@@ -29,6 +30,20 @@ cohere_client = cohere.Client(API_CONFIG['cohere_api_key'])
 
 # Set up Google Calendar API
 creds = None
+
+# Directory to save uploaded documents
+UPLOAD_DIR = "uploaded_documents"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+# JSON file to store document hashes and paths
+HASHES_FILE = "document_hashes.json"
+
+# Load existing hashes from the JSON file
+if os.path.exists(HASHES_FILE):
+    with open(HASHES_FILE, "r") as f:
+        document_hashes = json.load(f)
+else:
+    document_hashes = {}
 
 # ----------------------- Section 1: User Authentication -----------------------
 def authenticate_user(username, password):
@@ -52,12 +67,40 @@ else:
 
     # ----------------------- Section 2: Document Integrity Check (Blockchain) -----------------------
     st.title("Document Integrity Check")
+    
+    # Upload Document
     uploaded_file = st.file_uploader("Upload a Legal Document", type=["pdf", "docx", "txt"])
     
     if uploaded_file is not None:
         file_content = uploaded_file.read()
         file_hash = hashlib.sha256(file_content).hexdigest()
+        
+        # Save the uploaded document with its hash as the filename
+        file_path = os.path.join(UPLOAD_DIR, f"{file_hash}.txt")  # Change extension based on file type
+        with open(file_path, "wb") as f:
+            f.write(file_content)
+        
+        # Update the hashes dictionary and save to JSON
+        document_hashes[file_hash] = file_path
+        with open(HASHES_FILE, "w") as f:
+            json.dump(document_hashes, f)
+        
         st.write(f"Document Hash (SHA-256): `{file_hash}`")
+        st.success("Document uploaded and saved successfully!")
+
+    # Retrieve Document by Hash
+    hash_input = st.text_input("Enter Document Hash to Retrieve:")
+    if st.button("Retrieve Document"):
+        if hash_input in document_hashes:
+            retrieved_file_path = document_hashes[hash_input]
+            if os.path.exists(retrieved_file_path):
+                with open(retrieved_file_path, "rb") as f:
+                    st.download_button("Download Document", f, file_name=f"{hash_input}.txt")
+                st.success("Document retrieved successfully!")
+            else:
+                st.error("No document found with that hash.")
+        else:
+            st.error("No document found with that hash.")
 
     # ----------------------- Section 3: Legal Research Assistant -----------------------
     st.title("Legal Research Assistant")
@@ -120,6 +163,17 @@ else:
                 st.write("Sorry, I didn't catch that.")
             except sr.RequestError:
                 st.write("Service unavailable.")
+        if st.button("Ask"):
+        if user_input:
+            response = cohere_client.generate(
+                model="command",
+                prompt=f"Legal expert assistant: {user_input}",
+                max_tokens=100,
+                temperature=0.5
+            )
+            st.write(f"**Bot Response:** {response.generations[0].text.strip()}")
+        else:
+            st.write("I didn't get that.")
 
     # ----------------------- Section 7: Cohere Chatbot -----------------------
     st.title("Legal Chatbot")
@@ -128,7 +182,7 @@ else:
     if st.button("Ask Chatbot"):
         if user_input:
             response = cohere_client.generate(
-                model="xlarge",
+                model="command",
                 prompt=f"Legal expert assistant: {user_input}",
                 max_tokens=100,
                 temperature=0.5
