@@ -22,13 +22,19 @@ from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.oauth2.credentials import Credentials
 
+# ----------------------- API & Credentials Configuration -----------------------
+# All API keys and credentials in one place for easy management
+API_CONFIG = {
+    'cohere_api_key': st.secrets["COHERE_API_KEY"]
+    'google_calendar_scopes': st.secrets["CALENDAR_API_KEY"]
+    'google_credentials_file': st.secrets["CREDENTIALS_API"]
+}
+
 # Initialize NLP Model and Cohere API for the chatbot
 nlp = spacy.load("en_core_web_sm")
-cohere_api_key = "YOUR_COHERE_API_KEY"  # Replace with your Cohere API Key
-cohere_client = cohere.Client(cohere_api_key)
+cohere_client = cohere.Client(API_CONFIG['cohere_api_key'])
 
 # Set up Google Calendar API
-SCOPES = ['https://www.googleapis.com/auth/calendar']
 creds = None
 
 # ----------------------- Section 1: User Authentication -----------------------
@@ -139,7 +145,7 @@ if login_button and authenticate_user(username, password):
     
     if st.button("Authenticate and Connect Google Calendar"):
         flow = InstalledAppFlow.from_client_secrets_file(
-            'credentials.json', SCOPES)
+            API_CONFIG['google_credentials_file'], API_CONFIG['google_calendar_scopes'])
         creds = flow.run_local_server(port=0)
         
         service = build('calendar', 'v3', credentials=creds)
