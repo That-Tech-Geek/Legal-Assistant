@@ -1,130 +1,165 @@
 import streamlit as st
+import spacy
+import hashlib
 import pandas as pd
+import numpy as np
 import datetime
-import re
 import requests
-from bs4 import BeautifulSoup
-import sqlite3
+import speech_recognition as sr
 from transformers import pipeline
+from bs4 import BeautifulSoup
+from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plt
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.optimizers import Adam
+import pyttsx3
+import cohere
+import google.auth
+from google.auth.transport.requests import Request
+from googleapiclient.discovery import build
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.oauth2.credentials import Credentials
 
-# Initialize SQLite Database
-conn = sqlite3.connect('case_data.db')
-c = conn.cursor()
-c.execute('''CREATE TABLE IF NOT EXISTS cases (case_id TEXT, document_type TEXT, status TEXT, last_updated TEXT)''')
-conn.commit()
+# Initialize NLP Model and Cohere API for the chatbot
+nlp = spacy.load("en_core_web_sm")
+cohere_api_key = "YOUR_COHERE_API_KEY"  # Replace with your Cohere API Key
+cohere_client = cohere.Client(cohere_api_key)
 
-# Hugging Face NER model
-ner = pipeline("ner", model="dslim/bert-base-NER")
+# Set up Google Calendar API
+SCOPES = ['https://www.googleapis.com/auth/calendar']
+creds = None
 
-# Streamlit UI
-st.title("⚖️ AI-Powered Legal Case Management System")
-st.sidebar.header("Features")
-option = st.sidebar.selectbox("Select a Task:", ["Streamline Case Management", "Automate Document Processing", "Enhance Decision-Making", "Data Insights & Visualization"])
+# ----------------------- Section 1: User Authentication -----------------------
+def authenticate_user(username, password):
+    # Simulated authentication check
+    return username == "admin" and password == "password123"
 
-# Function to fetch case data from the internet
-def search_online_case(case_id):
-    st.write(f"🔍 Searching for case {case_id} online...")
-    url = f"https://mock-legal-website.com/cases/{case_id}"
-    try:
-        response = requests.get(url)
-        if response.status_code == 200:
-            soup = BeautifulSoup(response.content, "html.parser")
-            case_type = soup.find("span", class_="case-type").text
-            status = soup.find("span", class_="case-status").text
-            last_updated = soup.find("span", class_="last-updated").text
-            return {"Case ID": case_id, "Document Type": case_type, "Status": status, "Last Updated": last_updated}
-        else:
-            st.error("❌ Case not found online.")
-            return None
-    except Exception as e:
-        st.error(f"⚠️ Error fetching case data: {e}")
-        return None
+st.sidebar.title("Login")
+username = st.sidebar.text_input("Username")
+password = st.sidebar.text_input("Password", type="password")
+login_button = st.sidebar.button("Login")
 
-# Document processing with NER and regex
-def process_document():
-    st.subheader("📄 Upload a Document for Processing")
-    uploaded_file = st.file_uploader("Upload a legal document (txt/pdf)", type=["txt", "pdf"])
-    if uploaded_file:
-        text = uploaded_file.read().decode("utf-8")
-        st.text_area("Document Content:", text, height=300)
+if login_button and authenticate_user(username, password):
+    st.sidebar.success("Login Successful!")
 
-        # Named Entity Recognition (NER) using Hugging Face
-        st.write("**Named Entity Recognition (NER):**")
-        ner_results = ner(text)
-        for entity in ner_results:
-            st.write(f"{entity['word']} ({entity['entity']})")
-
-        # Extract Case ID and Dates using regex
-        case_ids = re.findall(r"(Case\sID:\s\w+)", text)
-        dates = re.findall(r"\d{4}-\d{2}-\d{2}", text)
-
-        st.write("**Extracted Case Details:**")
-        if case_ids:
-            st.write("Case IDs:", case_ids)
-        if dates:
-            st.write("Dates:", dates)
-        if not case_ids and not dates:
-            st.write("No recognizable patterns found.")
-
-# Function to manage case workflows
-def manage_cases():
-    st.subheader("🗂️ Case Management Dashboard")
-    c.execute("SELECT * FROM cases")
-    data = c.fetchall()
-    df = pd.DataFrame(data, columns=["Case ID", "Document Type", "Status", "Last Updated"])
-    st.dataframe(df)
-
-    st.subheader("🔎 Search or Add a Case")
-    case_id = st.text_input("Enter Case ID to search:")
-    if st.button("Search Case"):
-        case_data = df[df["Case ID"] == case_id]
-        if not case_data.empty:
-            st.write(f"✅ Case {case_id} found:")
-            st.dataframe(case_data)
-        else:
-            online_case = search_online_case(case_id)
-            if online_case:
-                st.write("🌐 Case found online:")
-                st.write(online_case)
-                c.execute("INSERT INTO cases VALUES (?, ?, ?, ?)", tuple(online_case.values()))
-                conn.commit()
-            else:
-                st.error("❌ Case not found.")
-
-# Decision-making with uploaded case data
-def enhance_decision_making():
-    st.subheader("📊 Decision-Making Assistance")
-    uploaded_file = st.file_uploader("Upload case data (CSV format)", type="csv")
-    if uploaded_file:
-        data = pd.read_csv(uploaded_file)
-        st.dataframe(data.head())
-        st.write("### 📈 Data Analysis:")
-        st.write(f"Total Cases: {len(data)}")
-        st.write(f"Closed Cases: {len(data[data['Status'] == 'Closed'])}")
-        st.write(f"Pending Cases: {len(data[data['Status'] == 'Pending'])}")
-
-# Data insights and visualization
-def visualize_data():
-    st.subheader("📊 Data Insights & Visualization")
-    c.execute("SELECT * FROM cases")
-    data = c.fetchall()
-    df = pd.DataFrame(data, columns=["Case ID", "Document Type", "Status", "Last Updated"])
+    # ----------------------- Section 2: Document Integrity Check (Blockchain) -----------------------
+    st.title("Document Integrity Check")
+    uploaded_file = st.file_uploader("Upload a Legal Document", type=["pdf", "docx", "txt"])
     
-    status_counts = df["Status"].value_counts()
+    if uploaded_file is not None:
+        file_content = uploaded_file.read()
+        file_hash = hashlib.sha256(file_content).hexdigest()
+        st.write(f"Document Hash (SHA-256): `{file_hash}`")
+
+    # ----------------------- Section 3: Legal Research Assistant -----------------------
+    st.title("Legal Research Assistant")
+    query = st.text_input("Enter a Legal Query:")
+    
+    if st.button("Search Relevant Case Laws"):
+        response = requests.get(f"https://www.example-legal-research.com/search?q={query.replace(' ', '+')}")
+        soup = BeautifulSoup(response.text, 'html.parser')
+        results = soup.find_all("div", class_="case-law-summary")
+        
+        st.write("### Top Relevant Case Laws:")
+        for i, result in enumerate(results[:5], start=1):
+            st.write(f"**{i}.** {result.text.strip()}")
+
+    # ----------------------- Section 4: Case Outcome Prediction -----------------------
+    st.title("Case Outcome Prediction & Analytics")
+
+    # Sample dataset for case outcome prediction
+    sample_data = pd.DataFrame({
+        "Case Duration (Days)": np.random.randint(30, 730, 100),
+        "Risk Score": np.random.uniform(0.1, 1.0, 100)
+    })
+
+    st.write("### Case Data:")
+    st.write(sample_data)
+
+    # Predict case duration
+    X = sample_data["Risk Score"].values.reshape(-1, 1)
+    y = sample_data["Case Duration (Days)"].values
+    model = LinearRegression()
+    model.fit(X, y)
+
+    risk_score = st.slider("Enter Risk Score for Prediction:", 0.1, 1.0, 0.5)
+    predicted_duration = model.predict([[risk_score]])[0]
+    st.write(f"Predicted Case Duration: **{int(predicted_duration)} days**")
+
+    # Plot data
     fig, ax = plt.subplots()
-    ax.bar(status_counts.index, status_counts.values, color=["green", "orange", "red"])
-    ax.set_title("Case Status Distribution")
-    ax.set_xlabel("Status")
-    ax.set_ylabel("Count")
+    ax.scatter(sample_data["Risk Score"], sample_data["Case Duration (Days)"], label="Actual Data")
+    ax.plot(sample_data["Risk Score"], model.predict(X), color='red', label="Prediction Line")
+    ax.set_xlabel("Risk Score")
+    ax.set_ylabel("Case Duration (Days)")
+    ax.legend()
     st.pyplot(fig)
 
-# Main workflow
-if option == "Streamline Case Management":
-    manage_cases()
-elif option == "Automate Document Processing":
-    process_document()
-elif option == "Enhance Decision-Making":
-    enhance_decision_making()
-elif option == "Data Insights & Visualization":
-    visualize_data()
+    # ----------------------- Section 5: Court Hearing Scheduler -----------------------
+    st.title("Court Hearing Scheduler")
+    hearing_date = st.date_input("Select Hearing Date:", datetime.date.today())
+    st.write(f"Scheduled Hearing Date: **{hearing_date.strftime('%B %d, %Y')}**")
+
+    # ----------------------- Section 6: Voice Command Integration -----------------------
+    st.title("Voice Command Case Search")
+
+    if st.button("Start Listening"):
+        recognizer = sr.Recognizer()
+        with sr.Microphone() as source:
+            st.write("Listening for a case name or query...")
+            try:
+                audio = recognizer.listen(source, timeout=5)
+                voice_query = recognizer.recognize_google(audio)
+                st.write(f"You said: **{voice_query}**")
+            except sr.UnknownValueError:
+                st.write("Sorry, I didn't catch that.")
+            except sr.RequestError:
+                st.write("Service unavailable.")
+
+    # ----------------------- Section 7: Cohere Chatbot -----------------------
+    st.title("Legal Chatbot")
+    user_input = st.text_input("Ask your legal question:")
+    
+    if st.button("Ask Chatbot"):
+        if user_input:
+            response = cohere_client.generate(
+                model="xlarge",
+                prompt=f"Legal expert assistant: {user_input}",
+                max_tokens=100,
+                temperature=0.5
+            )
+            st.write(f"**Bot Response:** {response.generations[0].text.strip()}")
+        else:
+            st.write("Please type a question.")
+
+    # ----------------------- Section 8: Google Calendar API Integration -----------------------
+    st.title("Add Hearing to Google Calendar")
+    
+    if st.button("Authenticate and Connect Google Calendar"):
+        flow = InstalledAppFlow.from_client_secrets_file(
+            'credentials.json', SCOPES)
+        creds = flow.run_local_server(port=0)
+        
+        service = build('calendar', 'v3', credentials=creds)
+        
+        event = {
+            'summary': 'Court Hearing',
+            'location': '123 Legal Ave, Courtroom 7',
+            'description': 'Scheduled court hearing for case review.',
+            'start': {
+                'dateTime': hearing_date.strftime('%Y-%m-%dT%H:%M:%S'),
+                'timeZone': 'America/New_York',
+            },
+            'end': {
+                'dateTime': (hearing_date + datetime.timedelta(hours=2)).strftime('%Y-%m-%dT%H:%M:%S'),
+                'timeZone': 'America/New_York',
+            },
+        }
+        
+        event = service.events().insert(calendarId='primary', body=event).execute()
+        st.write(f"Event created: {event.get('htmlLink')}")
+
+else:
+    st.sidebar.error("Authentication Failed. Please try again.")
