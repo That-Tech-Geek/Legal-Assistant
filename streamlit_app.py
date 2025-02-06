@@ -163,7 +163,7 @@ else:
                 st.write("Sorry, I didn't catch that.")
             except sr.RequestError:
                 st.write("Service unavailable.")
-     if st.button("Ask"):
+    if st.button("Ask"):
         if user_input:
             response = cohere_client.generate(
                 model="command",
