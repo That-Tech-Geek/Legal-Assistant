@@ -163,6 +163,3 @@ else:
         
         event = service.events().insert(calendarId='primary', body=event).execute()
         st.write(f"Event created: {event.get('htmlLink')}")
-
-else:
-    st.sidebar.error("Authentication Failed. Please try again.")
