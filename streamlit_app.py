@@ -163,17 +163,6 @@ else:
                 st.write("Sorry, I didn't catch that.")
             except sr.RequestError:
                 st.write("Service unavailable.")
-    if st.button("Ask"):
-        if user_input:
-            response = cohere_client.generate(
-                model="command",
-                prompt=f"Legal expert assistant: {user_input}",
-                max_tokens=100,
-                temperature=0.5
-            )
-            st.write(f"**Bot Response:** {response.generations[0].text.strip()}")
-        else:
-            st.write("I didn't get that.")
 
     # ----------------------- Section 7: Cohere Chatbot -----------------------
     st.title("Legal Chatbot")
