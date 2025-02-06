@@ -1,151 +1,130 @@
 import streamlit as st
 import pandas as pd
-import math
-from pathlib import Path
+import datetime
+import re
+import requests
+from bs4 import BeautifulSoup
+import sqlite3
+from transformers import pipeline
+import matplotlib.pyplot as plt
 
-# Set the title and favicon that appear in the Browser's tab bar.
-st.set_page_config(
-    page_title='GDP dashboard',
-    page_icon=':earth_americas:', # This is an emoji shortcode. Could be a URL too.
-)
+# Initialize SQLite Database
+conn = sqlite3.connect('case_data.db')
+c = conn.cursor()
+c.execute('''CREATE TABLE IF NOT EXISTS cases (case_id TEXT, document_type TEXT, status TEXT, last_updated TEXT)''')
+conn.commit()
 
-# -----------------------------------------------------------------------------
-# Declare some useful functions.
+# Hugging Face NER model
+ner = pipeline("ner", model="dslim/bert-base-NER")
 
-@st.cache_data
-def get_gdp_data():
-    """Grab GDP data from a CSV file.
+# Streamlit UI
+st.title("⚖️ AI-Powered Legal Case Management System")
+st.sidebar.header("Features")
+option = st.sidebar.selectbox("Select a Task:", ["Streamline Case Management", "Automate Document Processing", "Enhance Decision-Making", "Data Insights & Visualization"])
 
-    This uses caching to avoid having to read the file every time. If we were
-    reading from an HTTP endpoint instead of a file, it's a good idea to set
-    a maximum age to the cache with the TTL argument: @st.cache_data(ttl='1d')
-    """
-
-    # Instead of a CSV on disk, you could read from an HTTP endpoint here too.
-    DATA_FILENAME = Path(__file__).parent/'data/gdp_data.csv'
-    raw_gdp_df = pd.read_csv(DATA_FILENAME)
-
-    MIN_YEAR = 1960
-    MAX_YEAR = 2022
-
-    # The data above has columns like:
-    # - Country Name
-    # - Country Code
-    # - [Stuff I don't care about]
-    # - GDP for 1960
-    # - GDP for 1961
-    # - GDP for 1962
-    # - ...
-    # - GDP for 2022
-    #
-    # ...but I want this instead:
-    # - Country Name
-    # - Country Code
-    # - Year
-    # - GDP
-    #
-    # So let's pivot all those year-columns into two: Year and GDP
-    gdp_df = raw_gdp_df.melt(
-        ['Country Code'],
-        [str(x) for x in range(MIN_YEAR, MAX_YEAR + 1)],
-        'Year',
-        'GDP',
-    )
-
-    # Convert years from string to integers
-    gdp_df['Year'] = pd.to_numeric(gdp_df['Year'])
-
-    return gdp_df
-
-gdp_df = get_gdp_data()
-
-# -----------------------------------------------------------------------------
-# Draw the actual page
-
-# Set the title that appears at the top of the page.
-'''
-# :earth_americas: GDP dashboard
-
-Browse GDP data from the [World Bank Open Data](https://data.worldbank.org/) website. As you'll
-notice, the data only goes to 2022 right now, and datapoints for certain years are often missing.
-But it's otherwise a great (and did I mention _free_?) source of data.
-'''
-
-# Add some spacing
-''
-''
-
-min_value = gdp_df['Year'].min()
-max_value = gdp_df['Year'].max()
-
-from_year, to_year = st.slider(
-    'Which years are you interested in?',
-    min_value=min_value,
-    max_value=max_value,
-    value=[min_value, max_value])
-
-countries = gdp_df['Country Code'].unique()
-
-if not len(countries):
-    st.warning("Select at least one country")
-
-selected_countries = st.multiselect(
-    'Which countries would you like to view?',
-    countries,
-    ['DEU', 'FRA', 'GBR', 'BRA', 'MEX', 'JPN'])
-
-''
-''
-''
-
-# Filter the data
-filtered_gdp_df = gdp_df[
-    (gdp_df['Country Code'].isin(selected_countries))
-    & (gdp_df['Year'] <= to_year)
-    & (from_year <= gdp_df['Year'])
-]
-
-st.header('GDP over time', divider='gray')
-
-''
-
-st.line_chart(
-    filtered_gdp_df,
-    x='Year',
-    y='GDP',
-    color='Country Code',
-)
-
-''
-''
-
-
-first_year = gdp_df[gdp_df['Year'] == from_year]
-last_year = gdp_df[gdp_df['Year'] == to_year]
-
-st.header(f'GDP in {to_year}', divider='gray')
-
-''
-
-cols = st.columns(4)
-
-for i, country in enumerate(selected_countries):
-    col = cols[i % len(cols)]
-
-    with col:
-        first_gdp = first_year[first_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-        last_gdp = last_year[last_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-
-        if math.isnan(first_gdp):
-            growth = 'n/a'
-            delta_color = 'off'
+# Function to fetch case data from the internet
+def search_online_case(case_id):
+    st.write(f"🔍 Searching for case {case_id} online...")
+    url = f"https://mock-legal-website.com/cases/{case_id}"
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.content, "html.parser")
+            case_type = soup.find("span", class_="case-type").text
+            status = soup.find("span", class_="case-status").text
+            last_updated = soup.find("span", class_="last-updated").text
+            return {"Case ID": case_id, "Document Type": case_type, "Status": status, "Last Updated": last_updated}
         else:
-            growth = f'{last_gdp / first_gdp:,.2f}x'
-            delta_color = 'normal'
+            st.error("❌ Case not found online.")
+            return None
+    except Exception as e:
+        st.error(f"⚠️ Error fetching case data: {e}")
+        return None
 
-        st.metric(
-            label=f'{country} GDP',
-            value=f'{last_gdp:,.0f}B',
-            delta=growth,
-            delta_color=delta_color
-        )
+# Document processing with NER and regex
+def process_document():
+    st.subheader("📄 Upload a Document for Processing")
+    uploaded_file = st.file_uploader("Upload a legal document (txt/pdf)", type=["txt", "pdf"])
+    if uploaded_file:
+        text = uploaded_file.read().decode("utf-8")
+        st.text_area("Document Content:", text, height=300)
+
+        # Named Entity Recognition (NER) using Hugging Face
+        st.write("**Named Entity Recognition (NER):**")
+        ner_results = ner(text)
+        for entity in ner_results:
+            st.write(f"{entity['word']} ({entity['entity']})")
+
+        # Extract Case ID and Dates using regex
+        case_ids = re.findall(r"(Case\sID:\s\w+)", text)
+        dates = re.findall(r"\d{4}-\d{2}-\d{2}", text)
+
+        st.write("**Extracted Case Details:**")
+        if case_ids:
+            st.write("Case IDs:", case_ids)
+        if dates:
+            st.write("Dates:", dates)
+        if not case_ids and not dates:
+            st.write("No recognizable patterns found.")
+
+# Function to manage case workflows
+def manage_cases():
+    st.subheader("🗂️ Case Management Dashboard")
+    c.execute("SELECT * FROM cases")
+    data = c.fetchall()
+    df = pd.DataFrame(data, columns=["Case ID", "Document Type", "Status", "Last Updated"])
+    st.dataframe(df)
+
+    st.subheader("🔎 Search or Add a Case")
+    case_id = st.text_input("Enter Case ID to search:")
+    if st.button("Search Case"):
+        case_data = df[df["Case ID"] == case_id]
+        if not case_data.empty:
+            st.write(f"✅ Case {case_id} found:")
+            st.dataframe(case_data)
+        else:
+            online_case = search_online_case(case_id)
+            if online_case:
+                st.write("🌐 Case found online:")
+                st.write(online_case)
+                c.execute("INSERT INTO cases VALUES (?, ?, ?, ?)", tuple(online_case.values()))
+                conn.commit()
+            else:
+                st.error("❌ Case not found.")
+
+# Decision-making with uploaded case data
+def enhance_decision_making():
+    st.subheader("📊 Decision-Making Assistance")
+    uploaded_file = st.file_uploader("Upload case data (CSV format)", type="csv")
+    if uploaded_file:
+        data = pd.read_csv(uploaded_file)
+        st.dataframe(data.head())
+        st.write("### 📈 Data Analysis:")
+        st.write(f"Total Cases: {len(data)}")
+        st.write(f"Closed Cases: {len(data[data['Status'] == 'Closed'])}")
+        st.write(f"Pending Cases: {len(data[data['Status'] == 'Pending'])}")
+
+# Data insights and visualization
+def visualize_data():
+    st.subheader("📊 Data Insights & Visualization")
+    c.execute("SELECT * FROM cases")
+    data = c.fetchall()
+    df = pd.DataFrame(data, columns=["Case ID", "Document Type", "Status", "Last Updated"])
+    
+    status_counts = df["Status"].value_counts()
+    fig, ax = plt.subplots()
+    ax.bar(status_counts.index, status_counts.values, color=["green", "orange", "red"])
+    ax.set_title("Case Status Distribution")
+    ax.set_xlabel("Status")
+    ax.set_ylabel("Count")
+    st.pyplot(fig)
+
+# Main workflow
+if option == "Streamline Case Management":
+    manage_cases()
+elif option == "Automate Document Processing":
+    process_document()
+elif option == "Enhance Decision-Making":
+    enhance_decision_making()
+elif option == "Data Insights & Visualization":
+    visualize_data()
