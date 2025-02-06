@@ -9,11 +9,6 @@ import speech_recognition as sr
 from bs4 import BeautifulSoup
 from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plt
-import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.optimizers import Adam
-import pyttsx3
 import cohere
 import google.auth
 from google.auth.transport.requests import Request
