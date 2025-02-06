@@ -34,13 +34,21 @@ creds = None
 def authenticate_user(username, password):
     return username == "admin" and password == "password123"
 
-st.sidebar.title("Login")
-username = st.sidebar.text_input("Username")
-password = st.sidebar.text_input("Password", type="password")
-login_button = st.sidebar.button("Login")
+# Initialize session state for authentication
+if 'authenticated' not in st.session_state:
+    st.session_state.authenticated = False
 
-if login_button and authenticate_user(username, password):
-    st.sidebar.success("Login Successful!")
+st.sidebar.title("Login")
+if not st.session_state.authenticated:
+    username = st.sidebar.text_input("Username")
+    password = st.sidebar.text_input("Password", type="password")
+    login_button = st.sidebar.button("Login")
+
+    if login_button and authenticate_user(username, password):
+        st.session_state.authenticated = True
+        st.sidebar.success("Login Successful!")
+else:
+    st.sidebar.success("You are logged in!")
 
     # ----------------------- Section 2: Document Integrity Check (Blockchain) -----------------------
     st.title("Document Integrity Check")
